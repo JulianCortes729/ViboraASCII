@@ -1,0 +1,18 @@
+{
+    "name": "Vibora.Infrastructure",
+    "rootNamespace": "Vibora.Infrastructure",
+    "references": [
+        "Vibora.Core",
+        "Vibora.Presentation",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

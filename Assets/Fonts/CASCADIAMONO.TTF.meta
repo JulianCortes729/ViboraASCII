@@ -1,0 +1,26 @@
+fileFormatVersion: 2
+guid: 82d611e64915cf44f8eb5613351c3906
+TrueTypeFontImporter:
+  externalObjects: {}
+  serializedVersion: 4
+  fontSize: 16
+  forceTextureCase: -2
+  characterSpacing: 0
+  characterPadding: 1
+  includeFontData: 1
+  fontNames:
+  - Cascadia Mono
+  fallbackFontReferences:
+  - {fileID: 12800000, guid: 847e47dfb58d019488b8a5e3d4a58c9b, type: 3}
+  - {fileID: 12800000, guid: 2e0a0674ca909ba439216ec1dd023631, type: 3}
+  - {fileID: 12800000, guid: c95d809fb136e54489475157359d7edf, type: 3}
+  - {fileID: 12800000, guid: 0a1945744b56e2643ab796dd0c4cf040, type: 3}
+  - {fileID: 12800000, guid: 3677ef4301936a044a1d90277c14e9af, type: 3}
+  customCharacters: 1234567890qwertyuiopasdfghjklzxcvbnm
+  fontRenderingMode: 0
+  ascentCalculationMode: 1
+  useLegacyBoundsCalculation: 0
+  shouldRoundAdvanceValue: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
