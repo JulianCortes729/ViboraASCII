@@ -2,7 +2,6 @@ using System.IO;
 using UnityEngine;
 using Vibora.Core;
 using Vibora.Presentation;
-using static UnityEngine.InputSystem.LowLevel.InputStateHistory;
 
 namespace Vibora.Infrastructure
 {
@@ -51,8 +50,8 @@ namespace Vibora.Infrastructure
         private SpeedCurve? _speed;
         private GridModel? _grid;
         private HighScoreTracker? _highScoreTracker;
-
         private const string ScoreFileName = "highscore.json";
+        private readonly GameStateMachine _states = new GameStateMachine();
 
         // 📖 Awake SOLO valida. Unity no garantiza en qué orden corre el Awake de
         //    GameObjects distintos: si acá tocáramos al renderer podríamos llegar antes
@@ -94,7 +93,8 @@ namespace Vibora.Infrastructure
             string scorePath = Path.Combine(Application.persistentDataPath, ScoreFileName);
             _highScoreTracker = new HighScoreTracker(new JsonScoreRepository(scorePath));
 
-            StartNewGame();
+            BuildNewGame();
+            _tickDriver.Pause();
         }
 
         private void Update()
@@ -102,23 +102,23 @@ namespace Vibora.Infrastructure
             if (_inputReader == null)
                 return;
 
-            // 📖 Se consume SIEMPRE, se esté jugando o no. Si solo se leyera al perder,
-            //    un Enter apretado durante la partida quedaría guardado y reiniciaría
-            //    en el instante mismo de morir.
-            bool confirm = _inputReader.ConsumeConfirm();
+            if (_inputReader.ConsumeConfirm())
+                Apply(_states.Confirm());
 
-            if (confirm && _loop != null && _loop.IsOver)
-                StartNewGame();
+            if (_inputReader.ConsumePause())
+                Apply(_states.TogglePause());
+
+         
         }
 
         /// <summary>
-        /// Empieza una partida nueva sin recargar la escena.
+        /// Recrea todos los modelos y el GameLoop para empezar una partida nueva.
         /// </summary>
         /// <remarks>
         /// Recrea los modelos en vez de resetearlos in-place. Son ~9 KB de allocations
         /// por muerte, no por frame: no vale la pena el código extra de un Reset(). 🟡PERF
         /// </remarks>
-        private void StartNewGame()
+        private void BuildNewGame()
         {
             if (_grid == null || _speed == null || _tickDriver == null || _inputReader == null || _renderer == null || _highScoreTracker == null)
                 return;
@@ -139,9 +139,8 @@ namespace Vibora.Infrastructure
             _inputReader.Clear();
 
             _tickDriver.TicksPerSecond = _speed.For(0);
-            _tickDriver.Resume();
 
-            _renderer.Render(_loop, _highScoreTracker.Best);
+            Redraw();
         }
 
         private void OnTick()
@@ -166,14 +165,14 @@ namespace Vibora.Infrastructure
             //    El && corta a la izquierda: si la partida sigue, Submit ni se llama.
             bool esRecord = _loop.IsOver && _highScoreTracker.Submit(_loop.Score);
 
-            _renderer.Render(_loop, _highScoreTracker.Best);
+            Redraw();
 
             if (!_loop.IsOver)
                 return;
 
             // 📖 El tick se frena acá y no adentro del GameLoop: el Core no sabe que
             //    existe un metrónomo, y no tiene por qué saberlo.
-            _tickDriver.Pause();
+            Apply(_states.NotifyGameOver());
 
             if (esRecord)
                 _sfx?.PlayRecord();
@@ -187,6 +186,41 @@ namespace Vibora.Infrastructure
             string motivo = _loop.IsWon ? "GANASTE" : outcome.ToString();
             Debug.Log($"[{nameof(GameBootstrap)}] Fin: {motivo} · score {_loop.Score} · {_loop.StepCount} pasos. Enter para reiniciar.");
             
+        }
+
+        private void Apply(StateChange change)
+        {
+            switch (change)
+            {
+                case StateChange.GameStarted:
+                    BuildNewGame();
+                    _tickDriver?.Resume();
+                    break;
+                case StateChange.Paused:
+                    _tickDriver?.Pause();
+                    Redraw();
+                    break;
+                case StateChange.Resumed:
+                    // 📖 Durante la pausa el lector siguió encolando giros: el player loop de Unity
+                    //    no se entera de que el metrónomo está frenado. Se descartan al reanudar.
+                    _inputReader?.Clear();
+                    _tickDriver?.Resume();
+                    Redraw();
+                    break;
+                case StateChange.Ended:
+                    _tickDriver?.Pause();
+                    break;
+                case StateChange.None:
+                    break;
+            }
+        }
+
+        private void Redraw()
+        {
+            if (_loop == null || _renderer == null || _highScoreTracker == null)
+                return;
+
+            _renderer.Render(_loop, _highScoreTracker.Best, _states.Current);
         }
     }
 }

@@ -1,6 +1,5 @@
 using System.Text;
 using TMPro;
-using UnityEditor.Build.Content;
 using UnityEngine;
 using Vibora.Core;
 
@@ -27,7 +26,19 @@ namespace Vibora.Presentation
         private const string LostLabel = "FIN";
         private const string WonLabel = "GANASTE";
 
-        
+        private static readonly string[] MenuLines = new string[]
+        {
+            "V I B O R A S C I I",
+            "",
+            "ENTER PARA JUGAR"
+        };
+
+        private static readonly string[] PausedLines = new string[]
+        {
+            "P A U S A",
+            "",
+            "ENTER PARA SEGUIR"
+        };
 
         [SerializeField] private AsciiPalette? _palette;
 
@@ -83,7 +94,7 @@ namespace Vibora.Presentation
         }
 
         /// <summary>Vuelca el estado actual del tablero a la pantalla.</summary>
-        public void Render(IBoardView board, int highScore)
+        public void Render(IBoardView board, int highScore, GameState state)
         {
             if (_grid == null)
             {
@@ -94,7 +105,7 @@ namespace Vibora.Presentation
             if (_palette == null)
                 return;
 
-            BuildFrame(board, highScore);
+            BuildFrame(board, highScore, state);
 
             // ⚠️API Confirmá el overload SetText(StringBuilder) en tu TMP.
             _label.SetText(_buffer);
@@ -102,7 +113,7 @@ namespace Vibora.Presentation
 
         // ---------------- armado del cuadro ----------------
 
-        private void BuildFrame(IBoardView board, int highScore)
+        private void BuildFrame(IBoardView board, int highScore, GameState state)
         {
             _buffer.Clear();
             _openHex = null;
@@ -114,9 +125,17 @@ namespace Vibora.Presentation
             if (_drawBorder)
                 AppendHudRow(board, highScore);
 
+
             for (int y = 0; y < _grid!.Height; y++)
             {
                 StartRow();
+                string? overlay = OverlayLineFor(y, state);
+
+                if (overlay != null)
+                {
+                    AppendOverlayRow(overlay);
+                    continue;   // 📖 esta fila ya está completa: saltearse el loop de celdas
+                }
 
                 for (int x = -border; x < _grid.Width + border; x++)
                     AppendCell(KindAt(new GridPos(x, y), board, hasFood, food));
@@ -345,6 +364,84 @@ namespace Vibora.Presentation
             float byHeight = rect.height / (TotalRows * lineHeightRatio);
 
             _label.fontSize = Mathf.Min(byWidth, byHeight);
+        }
+
+
+        // ---------------- Menu y Pausa ----------------
+
+        /// <summary>
+        /// Qué línea de cartel va en la fila <paramref name="y"/>, o <c>null</c> si esa fila
+        /// se dibuja normal.
+        /// </summary>
+        private string? OverlayLineFor(int y, GameState state)
+        {
+            // 📖 Elegir el array primero deja una sola copia de la aritmética de centrado.
+            //    Con un case por estado, agregar un cartel nuevo duplicaría las tres líneas.
+            string[]? lines = state switch
+            {
+                GameState.MainMenu => MenuLines,
+                GameState.Paused => PausedLines,
+                _ => null
+            };
+
+            if (lines == null)
+                return null;
+
+            // 📖 Primera fila del bloque, para que quede centrado vertical.
+            int first = (_grid!.Height - lines.Length) / 2;
+            int index = y - first;
+
+            // 📖 null = "esta fila no lleva cartel". Distinto de "", que es una línea
+            //    de cartel en blanco — la del medio de los arrays de arriba.
+            return index >= 0 && index < lines.Length ? lines[index] : null;
+        }
+
+        /// <summary>Una fila entera de cartel: marco, fondo, y el texto centrado encima.</summary>
+        /// <remarks>
+        /// 📖 La única fila que se arma contando CARACTERES en vez de celdas. Una fila normal
+        /// recorre celdas y escribe CharsPerCell caracteres por cada una; acá se recorre de a
+        /// un carácter, porque una palabra como "PAUSA" mide 5 y no cae en un borde de celda.
+        /// El total sigue siendo TotalColumns, o la grilla de abajo se desfasa.
+        /// </remarks>
+        private void AppendOverlayRow(string text)
+        {
+            int left = (TotalColumns - text.Length) / 2;
+
+            // 📖 Con un texto más ancho que el tablero, left daría negativo y text[column - left]
+            //    se saldría del string. Mismo criterio que AppendHudRow: gana el texto.
+            if (left < 0)
+                left = 0;
+
+            int right = left + text.Length;
+
+            string wallHex = _palette!.HexOf(CellKind.Wall);
+            char wallGlyph = _palette.GlyphOf(CellKind.Wall);
+            string emptyHex = _palette.HexOf(CellKind.Empty);
+            char emptyGlyph = _palette.GlyphOf(CellKind.Empty);
+            string hudHex = _palette.HexOf(CellKind.Hud);
+
+            // 📖 El marco ocupa una celda entera de cada lado, o sea CharsPerCell columnas.
+            int borderColumns = _drawBorder ? CharsPerCell : 0;
+
+            for (int column = 0; column < TotalColumns; column++)
+            {
+                // 📖 El texto tapa lo que haya debajo. El - left traduce "columna de la
+                //    pantalla" a "índice dentro de la palabra".
+                if (column >= left && column < right)
+                {
+                    Write(hudHex, text[column - left]);
+                    continue;
+                }
+
+                bool isBorder = column < borderColumns || column >= TotalColumns - borderColumns;
+
+                string hex = isBorder ? wallHex : emptyHex;
+                char glyph = isBorder ? wallGlyph : emptyGlyph;
+
+                // 📖 El % reconstruye la mitad de celda que se perdió al contar caracteres:
+                //    columna par = primera mitad (ahí va el glifo), impar = relleno.
+                Write(hex, column % CharsPerCell == 0 ? glyph : ' ');
+            }
         }
     }
 }
