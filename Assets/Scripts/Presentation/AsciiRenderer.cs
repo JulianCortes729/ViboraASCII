@@ -2,6 +2,7 @@ using System.Text;
 using TMPro;
 using UnityEngine;
 using Vibora.Core;
+using Unity.Profiling;
 
 namespace Vibora.Presentation
 {
@@ -58,6 +59,10 @@ namespace Vibora.Presentation
         //    de 10 dígitos. Sin esto, cada tick generaría basura solo por dibujar el score. 🔴GC
         private readonly char[] _digits = new char[10];
 
+        private static readonly ProfilerMarker _renderMarker = new ProfilerMarker("AsciiRenderer.SetText");
+        private static readonly ProfilerMarker _buildMarker = new ProfilerMarker("AsciiRenderer.BuildFrame");
+    
+
         private int TotalColumns => (_grid!.Width + (_drawBorder ? 2 : 0)) * CharsPerCell;
 
         private int TotalRows => _grid!.Height + (_drawBorder ? 2 : 0);
@@ -96,6 +101,8 @@ namespace Vibora.Presentation
         /// <summary>Vuelca el estado actual del tablero a la pantalla.</summary>
         public void Render(IBoardView board, int highScore, GameState state)
         {
+            
+
             if (_grid == null)
             {
                 Debug.LogError($"[{nameof(AsciiRenderer)}] Render sin Initialize.", this);
@@ -105,10 +112,16 @@ namespace Vibora.Presentation
             if (_palette == null)
                 return;
 
-            BuildFrame(board, highScore, state);
-
-            // ⚠️API Confirmá el overload SetText(StringBuilder) en tu TMP.
-            _label.SetText(_buffer);
+            using (_buildMarker.Auto())
+            {
+                BuildFrame(board, highScore, state);
+            }
+                
+            using (_renderMarker.Auto())
+            {
+                // ⚠️API Confirmá el overload SetText(StringBuilder) en tu TMP.
+                _label.SetText(_buffer);
+            }
         }
 
         // ---------------- armado del cuadro ----------------
