@@ -21,6 +21,9 @@ namespace Vibora.Infrastructure
         [Tooltip("Arrastrá acá UI/Submit. Es la tecla de reiniciar (Enter o Espacio).")]
         [SerializeField] private InputActionReference? _confirmAction;
 
+        [Tooltip("Arrastrá acá UI/Cancel. Es la tecla de pausar (Escape).")]
+        [SerializeField] private InputActionReference? _pauseAction;
+
         [Header("Ajustes")]
         [Tooltip("Cuántos giros se recuerdan entre paso y paso. 2 permite pre-programar una esquina.")]
         [SerializeField, Range(1, 4)] private int _bufferCapacity = 2;
@@ -31,13 +34,15 @@ namespace Vibora.Infrastructure
         private DirectionBuffer _buffer = null!;
         private InputAction? _action;
         private InputAction? _confirm;
+        private InputAction? _pause;
 
         // 📖 Guardamos el vector anterior para desempatar diagonales (ver TryToDirection).
         private Vector2 _lastRaw;
 
         // 📖 Un solo bit: "hubo un confirmar sin consumir". No se acumula a propósito —
-        //    aporrear Enter tres veces no debe encolar tres reinicios.
+        //    aporrear Enter o Escape tres veces no debe encolar tres reinicios o pausas.
         private bool _confirmPending;
+        private bool _pausePending;
 
         /// <summary>Giros esperando. Útil para mirarlo en el Inspector mientras probás.</summary>
         public int PendingCount => _buffer?.Count ?? 0;
@@ -47,12 +52,16 @@ namespace Vibora.Infrastructure
             _buffer = new DirectionBuffer(_bufferCapacity);
             _action = _moveAction != null ? _moveAction.action : null;
             _confirm = _confirmAction != null ? _confirmAction.action : null;
+            _pause = _pauseAction != null ? _pauseAction.action : null;
 
             if (_action == null)
                 Debug.LogError($"[{nameof(InputSystemReader)}] Falta asignar la acción de movimiento en el Inspector.", this);
 
             if (_confirm == null)
                 Debug.LogWarning($"[{nameof(InputSystemReader)}] Sin acción de confirmar: no se va a poder reiniciar.", this);
+
+            if (_pause == null)
+                Debug.LogWarning($"[{nameof(InputSystemReader)}] Sin acción de pausar: no se va a poder pausar.", this);
         }
 
         // 📖 OnEnable suscribe, OnDisable desuscribe. Sin el par, el callback sigue vivo
@@ -63,6 +72,12 @@ namespace Vibora.Infrastructure
             {
                 _confirm.performed += OnConfirmPerformed;
                 _confirm.Enable();
+            }
+
+            if (_pause != null)
+            {
+                _pause.performed += OnPausePerformed;
+                _pause.Enable();
             }
 
             if (_action == null)
@@ -79,6 +94,13 @@ namespace Vibora.Infrastructure
                 _confirm.performed -= OnConfirmPerformed;
                 _confirm.Disable();
                 _confirmPending = false;
+            }
+
+            if (_pause != null)
+            {
+                _pause.performed -= OnPausePerformed;
+                _pause.Disable();
+                _pausePending = false;
             }
 
             if (_action == null)
@@ -106,11 +128,20 @@ namespace Vibora.Infrastructure
             return true;
         }
 
+        public bool ConsumePause()
+        {
+            if (!_pausePending)
+                return false;
+            _pausePending = false;
+            return true;
+        }
+
         public void Clear()
         {
             _buffer.Clear();
             _lastRaw = Vector2.zero;
             _confirmPending = false;
+            _pausePending = false;
         }
 
         private void OnConfirmPerformed(InputAction.CallbackContext context) => _confirmPending = true;
@@ -124,6 +155,8 @@ namespace Vibora.Infrastructure
 
             _lastRaw = raw;
         }
+
+        private void OnPausePerformed(InputAction.CallbackContext context) => _pausePending = true;
 
         /// <summary>
         /// Vector2 -> Direction. <c>public static</c> y sin estado a propósito: es la regla
