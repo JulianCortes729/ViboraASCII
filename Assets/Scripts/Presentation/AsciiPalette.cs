@@ -16,7 +16,9 @@ namespace Vibora.Presentation
         SnakeDead = 5,
 
         /// <summary>El texto del score escrito sobre el marco.</summary>
-        Hud = 6
+        Hud = 6,
+
+        Ray = 7
     }
 
     /// <summary>Un carácter y su color.</summary>
@@ -56,8 +58,9 @@ namespace Vibora.Presentation
         [SerializeField] private GlyphStyle _food = new GlyphStyle("*", new Color(1.00f, 0.25f, 0.21f));
         [SerializeField] private GlyphStyle _snakeDead = new GlyphStyle("x", new Color(0.55f, 0.14f, 0.14f));
         [SerializeField] private GlyphStyle _hud = new GlyphStyle(" ", new Color(1.00f, 0.90f, 0.40f));
+        [SerializeField] private GlyphStyle _ray = new GlyphStyle(".", new Color(0.60f, 1.00f, 0.60f));
 
-        private const int KindCount = 7;
+        private const int KindCount = 8;
 
         // 📖 Los strings de color se calculan UNA vez y se guardan. ColorUtility genera
         //    un string nuevo en cada llamada: hacerlo por celda serían 1000 strings por
@@ -86,6 +89,7 @@ namespace Vibora.Presentation
             CellKind.Food => _food,
             CellKind.SnakeDead => _snakeDead,
             CellKind.Hud => _hud,
+            CellKind.Ray => _ray,
             _ => _empty
         };
 
