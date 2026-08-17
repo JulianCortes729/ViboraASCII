@@ -21,7 +21,6 @@ namespace Vibora.Presentation
         // 📖 Medido en Fase 0: un glifo de Cascadia Mono da una celda de relación
         //    alto/ancho 1.98; dos glifos la dejan en 0.99, o sea cuadrada.
         private const int CharsPerCell = 2;
-
         private const string ScoreLabel = "SCORE ";
         private const string BestScoreLabel = " BEST ";  
         private const string LostLabel = "FIN";
@@ -59,9 +58,11 @@ namespace Vibora.Presentation
         //    de 10 dígitos. Sin esto, cada tick generaría basura solo por dibujar el score. 🔴GC
         private readonly char[] _digits = new char[10];
 
-        private static readonly ProfilerMarker _renderMarker = new ProfilerMarker("AsciiRenderer.SetText");
+        private static readonly ProfilerMarker _setTextMarker = new ProfilerMarker("AsciiRenderer.SetText");
         private static readonly ProfilerMarker _buildMarker = new ProfilerMarker("AsciiRenderer.BuildFrame");
-    
+        private readonly RayEffect _rayEffect = new RayEffect();
+
+        public bool HasActiveRayEffect => _rayEffect.IsActive;
 
         private int TotalColumns => (_grid!.Width + (_drawBorder ? 2 : 0)) * CharsPerCell;
 
@@ -112,16 +113,24 @@ namespace Vibora.Presentation
             if (_palette == null)
                 return;
 
+            _rayEffect.Advance(Time.deltaTime);
+
             using (_buildMarker.Auto())
             {
                 BuildFrame(board, highScore, state);
             }
-                
-            using (_renderMarker.Auto())
+
+
+            using (_setTextMarker.Auto())
             {
                 // ⚠️API Confirmá el overload SetText(StringBuilder) en tu TMP.
                 _label.SetText(_buffer);
             }
+        }
+
+        public void TriggerRayEffect(GridPos origin)
+        {
+            _rayEffect.Trigger(origin);
         }
 
         // ---------------- armado del cuadro ----------------
@@ -261,6 +270,9 @@ namespace Vibora.Presentation
 
             if (hasFood && position == food)
                 return CellKind.Food;
+
+            if (_rayEffect.Covers(position))
+                return CellKind.Ray;
 
             return CellKind.Empty;
         }

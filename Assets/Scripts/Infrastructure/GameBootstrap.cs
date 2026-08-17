@@ -161,7 +161,11 @@ namespace Vibora.Infrastructure
             _tickDriver.TicksPerSecond = _speed.For(_loop.Score);
 
             if (comio)
+            {
                 _sfx?.PlayEat();
+                _renderer.TriggerRayEffect(_loop.SnakeHead);
+            }
+
 
             // 📖 El récord se actualiza ANTES de dibujar: así el último frame —el que queda
             //    congelado en pantalla— muestra el récord nuevo y no el anterior.
@@ -220,13 +224,13 @@ namespace Vibora.Infrastructure
 
         private void LateUpdate()
         {
-            if (!_needsRedraw) return;
+            if (_renderer == null) return;
+            if (!_needsRedraw && !_renderer.HasActiveRayEffect) return;
             
             _needsRedraw = false;
             Draw();
-            
         }
-
+           
         private void Draw()
         {
             if (_loop == null || _renderer == null || _highScoreTracker == null)
