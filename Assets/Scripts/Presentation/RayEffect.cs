@@ -20,13 +20,15 @@ namespace Vibora.Presentation
         // 📖 En celdas y no en píxeles: como cada celda es cuadrada (2 caracteres de
         //    ancho, decisión de Fase 0), el rayo se ve igual de rápido en horizontal
         //    que en vertical sin tener que compensar nada.
-        private const float Speed = 30f;
+        private const float Speed = 50f;
 
         /// <summary>Cuántas celdas de ancho tiene el frente que se pinta.</summary>
-        // 📖 No es decoración: a 30 celdas/s y 60 fps el frente avanza media celda por
-        //    frame. Con un frente de una sola celda habría frames en los que no cae
-        //    justo sobre ninguna y el rayo se vería entrecortado.
-        private const int Thickness = 2;
+        // 📖 Es una decisión estética: un frente ancho deja estela detrás de la punta,
+        //    uno finito es una línea que pasa y ya. El piso —sea cual sea el gusto— es
+        //    que tiene que cubrir más de lo que el frente avanza en un frame
+        //    (Speed dividido los fps), o habría frames sin ninguna celda pintada y el
+        //    rayo se vería entrecortado.
+        private const int Thickness = 10;
 
         private float _timer;
         private GridPos _posRay;
