@@ -110,5 +110,6 @@
   <Project Path="Unity.Bindings.OpenImageIO.Editor.csproj" />
   <Project Path="Unity.InferenceEngine.MacBLAS.csproj" />
   <Project Path="Unity.InferenceEngine.ONNX.Editor.csproj" />
+  <Project Path="Vibora.Presentation.Tests.csproj" />
   <Project Path="Unity.InferenceEngine.iOSBLAS.csproj" />
 </Solution>
