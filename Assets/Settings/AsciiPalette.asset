@@ -35,4 +35,4 @@ MonoBehaviour:
     _color: {r: 1, g: 0.9, b: 0.4, a: 1}
   _ray:
     _glyph: .
-    _color: {r: 0, g: 1, b: 0.000000059604645, a: 1}
+    _color: {r: 1, g: 0, b: 1, a: 1}
