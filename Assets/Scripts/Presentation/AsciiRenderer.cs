@@ -3,6 +3,8 @@ using TMPro;
 using UnityEngine;
 using Vibora.Core;
 using Unity.Profiling;
+using System;
+
 
 namespace Vibora.Presentation
 {
@@ -130,7 +132,24 @@ namespace Vibora.Presentation
 
         public void TriggerRayEffect(GridPos origin)
         {
-            _rayEffect.Trigger(origin);
+            if (_grid == null)
+            {
+                Debug.LogError($"[{nameof(AsciiRenderer)}] TriggerRayEffect sin Initialize.", this);
+                return;
+            }
+
+            // Distancia hasta los cuatro bordes en coordenadas de celda.
+            int distanceToLeft = origin.X; // hasta x = -border
+            int distanceToRight = (_grid.Width - 1 - origin.X) ; // hasta x = Width
+            int distanceToTop = origin.Y; // hasta y = -border
+            int distanceToBottom = (_grid.Height - 1 - origin.Y); // hasta y = Height
+
+            int maxHorizontal = Math.Max(distanceToLeft, distanceToRight);
+            int maxVertical = Math.Max(distanceToTop, distanceToBottom);
+
+            int distanceMax = Math.Max(maxHorizontal, maxVertical);
+
+            _rayEffect.Trigger(origin, distanceMax);
         }
 
         // ---------------- armado del cuadro ----------------

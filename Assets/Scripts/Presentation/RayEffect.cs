@@ -14,8 +14,7 @@ namespace Vibora.Presentation
     /// </remarks>
     public sealed class RayEffect
     {
-        /// <summary>Cuánto vive el destello, en segundos.</summary>
-        private const float Duration = 1.5f;
+        private int _distanceMax;
 
         /// <summary>A qué velocidad se aleja el frente, en celdas por segundo.</summary>
         // 📖 En celdas y no en píxeles: como cada celda es cuadrada (2 caracteres de
@@ -35,20 +34,18 @@ namespace Vibora.Presentation
         public bool IsActive { get; private set; }
 
         /// <summary>A qué distancia del origen llegó el frente en este instante.</summary>
-        // 📖 Tiempo por velocidad, y nada más. Dividir además por Duration mezclaría
-        //    dos escalas: la velocidad ya está en celdas por segundo, así que el largo
-        //    del recorrido sale solo de cuánto vive el destello.
         private float Front => _timer * Speed;
 
         /// <summary>Arranca un destello nuevo en <paramref name="origin"/>, pisando el anterior.</summary>
-        public void Trigger(GridPos origin)
+        public void Trigger(GridPos origin, int distance)
         {
             _timer = 0f;
             _posRay = origin;
             IsActive = true;
+            _distanceMax = distance;
         }
 
-        /// <summary>Le pasa el tiempo al destello. Se apaga solo al llegar a <see cref="Duration"/>.</summary>
+        /// <summary>Le pasa el tiempo al destello. Se apaga solo al llegar al final del tablero </summary>
         public void Advance(float deltaTime)
         {
             // 📖 La guarda vive acá y no en el que llama: "pasó tiempo" es una frase
@@ -58,7 +55,7 @@ namespace Vibora.Presentation
 
             _timer += deltaTime;
 
-            if (_timer > Duration)
+            if (Front-Thickness > _distanceMax)
                 IsActive = false;
         }
 
