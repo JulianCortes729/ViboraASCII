@@ -50,8 +50,10 @@ namespace Vibora.Infrastructure
         private SpeedCurve? _speed;
         private GridModel? _grid;
         private HighScoreTracker? _highScoreTracker;
+        private bool _needsRedraw;
         private const string ScoreFileName = "highscore.json";
         private readonly GameStateMachine _states = new GameStateMachine();
+
 
         // 📖 Awake SOLO valida. Unity no garantiza en qué orden corre el Awake de
         //    GameObjects distintos: si acá tocáramos al renderer podríamos llegar antes
@@ -140,7 +142,8 @@ namespace Vibora.Infrastructure
 
             _tickDriver.TicksPerSecond = _speed.For(0);
 
-            Redraw();
+
+            _needsRedraw = true;
         }
 
         private void OnTick()
@@ -158,14 +161,18 @@ namespace Vibora.Infrastructure
             _tickDriver.TicksPerSecond = _speed.For(_loop.Score);
 
             if (comio)
+            {
                 _sfx?.PlayEat();
+                _renderer.TriggerRayEffect(_loop.SnakeHead);
+            }
+
 
             // 📖 El récord se actualiza ANTES de dibujar: así el último frame —el que queda
             //    congelado en pantalla— muestra el récord nuevo y no el anterior.
             //    El && corta a la izquierda: si la partida sigue, Submit ni se llama.
             bool esRecord = _loop.IsOver && _highScoreTracker.Submit(_loop.Score);
 
-            Redraw();
+            _needsRedraw = true;
 
             if (!_loop.IsOver)
                 return;
@@ -198,14 +205,14 @@ namespace Vibora.Infrastructure
                     break;
                 case StateChange.Paused:
                     _tickDriver?.Pause();
-                    Redraw();
+                    _needsRedraw = true;
                     break;
                 case StateChange.Resumed:
                     // 📖 Durante la pausa el lector siguió encolando giros: el player loop de Unity
                     //    no se entera de que el metrónomo está frenado. Se descartan al reanudar.
                     _inputReader?.Clear();
                     _tickDriver?.Resume();
-                    Redraw();
+                    _needsRedraw = true;
                     break;
                 case StateChange.Ended:
                     _tickDriver?.Pause();
@@ -215,7 +222,16 @@ namespace Vibora.Infrastructure
             }
         }
 
-        private void Redraw()
+        private void LateUpdate()
+        {
+            if (_renderer == null) return;
+            if (!_needsRedraw && !_renderer.HasActiveRayEffect) return;
+            
+            _needsRedraw = false;
+            Draw();
+        }
+           
+        private void Draw()
         {
             if (_loop == null || _renderer == null || _highScoreTracker == null)
                 return;

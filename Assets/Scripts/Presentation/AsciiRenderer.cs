@@ -2,6 +2,9 @@ using System.Text;
 using TMPro;
 using UnityEngine;
 using Vibora.Core;
+using Unity.Profiling;
+using System;
+
 
 namespace Vibora.Presentation
 {
@@ -20,7 +23,6 @@ namespace Vibora.Presentation
         // 📖 Medido en Fase 0: un glifo de Cascadia Mono da una celda de relación
         //    alto/ancho 1.98; dos glifos la dejan en 0.99, o sea cuadrada.
         private const int CharsPerCell = 2;
-
         private const string ScoreLabel = "SCORE ";
         private const string BestScoreLabel = " BEST ";  
         private const string LostLabel = "FIN";
@@ -57,6 +59,12 @@ namespace Vibora.Presentation
         // 📖 Buffer fijo para pasar un int a dígitos sin crear strings. Un int no pasa
         //    de 10 dígitos. Sin esto, cada tick generaría basura solo por dibujar el score. 🔴GC
         private readonly char[] _digits = new char[10];
+
+        private static readonly ProfilerMarker _setTextMarker = new ProfilerMarker("AsciiRenderer.SetText");
+        private static readonly ProfilerMarker _buildMarker = new ProfilerMarker("AsciiRenderer.BuildFrame");
+        private readonly RayEffect _rayEffect = new RayEffect();
+
+        public bool HasActiveRayEffect => _rayEffect.IsActive;
 
         private int TotalColumns => (_grid!.Width + (_drawBorder ? 2 : 0)) * CharsPerCell;
 
@@ -96,6 +104,8 @@ namespace Vibora.Presentation
         /// <summary>Vuelca el estado actual del tablero a la pantalla.</summary>
         public void Render(IBoardView board, int highScore, GameState state)
         {
+            
+
             if (_grid == null)
             {
                 Debug.LogError($"[{nameof(AsciiRenderer)}] Render sin Initialize.", this);
@@ -105,10 +115,41 @@ namespace Vibora.Presentation
             if (_palette == null)
                 return;
 
-            BuildFrame(board, highScore, state);
+            _rayEffect.Advance(Time.deltaTime);
 
-            // ⚠️API Confirmá el overload SetText(StringBuilder) en tu TMP.
-            _label.SetText(_buffer);
+            using (_buildMarker.Auto())
+            {
+                BuildFrame(board, highScore, state);
+            }
+
+
+            using (_setTextMarker.Auto())
+            {
+                // ⚠️API Confirmá el overload SetText(StringBuilder) en tu TMP.
+                _label.SetText(_buffer);
+            }
+        }
+
+        public void TriggerRayEffect(GridPos origin)
+        {
+            if (_grid == null)
+            {
+                Debug.LogError($"[{nameof(AsciiRenderer)}] TriggerRayEffect sin Initialize.", this);
+                return;
+            }
+
+            // Distancia hasta los cuatro bordes en coordenadas de celda.
+            int distanceToLeft = origin.X; // hasta x = -border
+            int distanceToRight = (_grid.Width - 1 - origin.X) ; // hasta x = Width
+            int distanceToTop = origin.Y; // hasta y = -border
+            int distanceToBottom = (_grid.Height - 1 - origin.Y); // hasta y = Height
+
+            int maxHorizontal = Math.Max(distanceToLeft, distanceToRight);
+            int maxVertical = Math.Max(distanceToTop, distanceToBottom);
+
+            int distanceMax = Math.Max(maxHorizontal, maxVertical);
+
+            _rayEffect.Trigger(origin, distanceMax);
         }
 
         // ---------------- armado del cuadro ----------------
@@ -248,6 +289,9 @@ namespace Vibora.Presentation
 
             if (hasFood && position == food)
                 return CellKind.Food;
+
+            if (_rayEffect.Covers(position))
+                return CellKind.Ray;
 
             return CellKind.Empty;
         }

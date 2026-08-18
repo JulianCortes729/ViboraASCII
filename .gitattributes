@@ -1,2 +1,78 @@
-# Auto detect text files and perform LF normalization
+# Normalización de fin de línea.
+# En el repositorio todo se guarda con LF; en tu disco Windows los checkouts salen con CRLF.
+# Sin esto, git avisa "LF will be replaced by CRLF" en cada add y los diffs de GitHub
+# aparecen como archivos enteros reescritos.
 * text=auto
+
+# Código y texto: LF explícito, para que no dependa de la config de cada máquina.
+*.cs        text diff=csharp
+*.shader    text
+*.cginc     text
+*.hlsl      text
+*.compute   text
+*.json      text
+*.md        text
+*.txt       text
+*.xml       text
+*.yml       text
+*.yaml      text
+*.rsp       text
+*.asmdef    text
+*.gitignore text
+*.gitattributes text
+
+# Assets serializados de Unity: son YAML, o sea texto.
+# ⚠️ Requieren "Asset Serialization: Force Text" en Project Settings > Editor
+#    (ya está así en este proyecto, si no, estos archivos serían binarios).
+*.unity        text eol=lf
+*.prefab       text eol=lf
+*.asset        text eol=lf
+*.meta         text eol=lf
+*.mat          text eol=lf
+*.anim         text eol=lf
+*.controller   text eol=lf
+*.overrideController text eol=lf
+*.physicMaterial     text eol=lf
+*.physicsMaterial2D  text eol=lf
+*.playable     text eol=lf
+*.mask         text eol=lf
+*.brush        text eol=lf
+*.flare        text eol=lf
+*.fontsettings text eol=lf
+*.guiskin      text eol=lf
+*.giparams     text eol=lf
+*.renderTexture text eol=lf
+*.spriteatlas  text eol=lf
+*.terrainlayer text eol=lf
+*.mixer        text eol=lf
+*.shadervariants text eol=lf
+*.preset       text eol=lf
+*.uss          text eol=lf
+*.uxml         text eol=lf
+
+# Binarios: nunca tocarlos, nunca intentar un diff de texto.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.bmp   binary
+*.tga   binary
+*.tif   binary
+*.psd   binary
+*.ico   binary
+*.ttf   binary
+*.otf   binary
+*.wav   binary
+*.mp3   binary
+*.ogg   binary
+*.aif   binary
+*.fbx   binary
+*.blend binary
+*.obj   binary
+*.dll   binary
+*.pdb   binary
+*.exe   binary
+*.so    binary
+*.dylib binary
+*.zip   binary
+*.unitypackage binary
