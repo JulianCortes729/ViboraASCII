@@ -27,21 +27,6 @@ namespace Vibora.Presentation
         private const string BestScoreLabel = " BEST ";  
         private const string LostLabel = "FIN";
         private const string WonLabel = "GANASTE";
-
-        private static readonly string[] MenuLines = new string[]
-        {
-            "V I B O R A S C I I",
-            "",
-            "ENTER PARA JUGAR"
-        };
-
-        private static readonly string[] PausedLines = new string[]
-        {
-            "P A U S A",
-            "",
-            "ENTER PARA SEGUIR"
-        };
-
         [SerializeField] private AsciiPalette? _palette;
 
         [Tooltip("Marco alrededor del tablero. Va POR FUERA de la grilla jugable, y arriba lleva el score.")]
@@ -170,7 +155,7 @@ namespace Vibora.Presentation
             for (int y = 0; y < _grid!.Height; y++)
             {
                 StartRow();
-                string? overlay = OverlayLineFor(y, state);
+                string? overlay = OverlayText.LineFor(y, state, _grid.Height);
 
                 if (overlay != null)
                 {
@@ -206,7 +191,6 @@ namespace Vibora.Presentation
             AppendWallRun(left + labelWidth, TotalColumns);
 
         }
-
         private void AppendWallRow()
         {
             StartRow();
@@ -409,37 +393,7 @@ namespace Vibora.Presentation
 
             _label.fontSize = Mathf.Min(byWidth, byHeight);
         }
-
-
-        // ---------------- Menu y Pausa ----------------
-
-        /// <summary>
-        /// Qué línea de cartel va en la fila <paramref name="y"/>, o <c>null</c> si esa fila
-        /// se dibuja normal.
-        /// </summary>
-        private string? OverlayLineFor(int y, GameState state)
-        {
-            // 📖 Elegir el array primero deja una sola copia de la aritmética de centrado.
-            //    Con un case por estado, agregar un cartel nuevo duplicaría las tres líneas.
-            string[]? lines = state switch
-            {
-                GameState.MainMenu => MenuLines,
-                GameState.Paused => PausedLines,
-                _ => null
-            };
-
-            if (lines == null)
-                return null;
-
-            // 📖 Primera fila del bloque, para que quede centrado vertical.
-            int first = (_grid!.Height - lines.Length) / 2;
-            int index = y - first;
-
-            // 📖 null = "esta fila no lleva cartel". Distinto de "", que es una línea
-            //    de cartel en blanco — la del medio de los arrays de arriba.
-            return index >= 0 && index < lines.Length ? lines[index] : null;
-        }
-
+        
         /// <summary>Una fila entera de cartel: marco, fondo, y el texto centrado encima.</summary>
         /// <remarks>
         /// 📖 La única fila que se arma contando CARACTERES en vez de celdas. Una fila normal
