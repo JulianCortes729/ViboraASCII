@@ -76,3 +76,8 @@
 *.dylib binary
 *.zip   binary
 *.unitypackage binary
+
+# Librerías de terceros: no contar en las estadísticas de lenguaje de GitHub
+Assets/TextMesh?Pro/**       linguist-vendored
+Assets/Plugins/**            linguist-vendored
+Assets/ThirdParty/**         linguist-vendored
